@@ -100,3 +100,58 @@ class BaseProcessingSystem:
         }
         df = pd.DataFrame(data)
         return df.melt(id_vars=["DIMENSION_X"], var_name="METRIC_TYPE", value_name="METRIC_VALUE")
+# app.py
+import gradio as gr
+import hashlib
+
+from engine_core import BaseProcessingSystem, MODULE_SECRET_TOKEN
+
+core_system = BaseProcessingSystem()
+client_hash_a = hashlib.sha256(b"USER_PHONE_A" + MODULE_SECRET_TOKEN).hexdigest()
+client_hash_b = hashlib.sha256(b"USER_PHONE_B" + MODULE_SECRET_TOKEN).hexdigest()
+
+with gr.Blocks(theme=gr.themes.Soft(), title="GENERIC_SYSTEM_DASHBOARD") as demo:
+    gr.Markdown("# 🛡️ SYSTEM CORE INTERFACE - ANONYMIZED TESTING DASHBOARD")
+
+    with gr.Tab("🚦 MODULE 1: PAYLOAD ROUTER"):
+        with gr.Row():
+            with gr.Column():
+                user_select_1 = gr.Dropdown(choices=[("NODE_A", client_hash_a), ("NODE_B", client_hash_b)], label="Select Identity", value=client_hash_a)
+                msg_input = gr.Textbox(label="Input Payload String", placeholder="e.g., 'kw_1 with 5 digits'")
+                btn_route = gr.Button("🚀 Execute Route Diagnostic", variant="primary")
+            with gr.Column():
+                route_output = gr.JSON(label="Router Pipeline JSON Output")
+        btn_route.click(fn=core_system.evaluate_incoming_payload, inputs=[user_select_1, msg_input], outputs=[route_output])
+
+    with gr.Tab("🛡️ MODULE 2: TELEMETRY FIREWALL"):
+        with gr.Row():
+            with gr.Column():
+                user_select_2 = gr.Dropdown(choices=[("NODE_A", client_hash_a), ("NODE_B", client_hash_b)], label="Reporter Node Hash", value=client_hash_b)
+                mat_name = gr.Textbox(label="Item Tag", value="ITEM_A")
+                mat_price = gr.Number(label="Numerical Value", value=45.0)
+                mat_loc = gr.Textbox(label="Location Code", value="loc_1")
+                btn_report = gr.Button("🔒 Commit Data", variant="secondary")
+            with gr.Column():
+                report_output = gr.JSON(label="Commit Confirmation Output")
+        def report_wrapper(user_id, name, val, loc):
+            return core_system.process_telemetry_report(user_id, {"item_name": name, "numerical_value": val, "location_data": loc})
+        btn_report.click(fn=report_wrapper, inputs=[user_select_2, mat_name, mat_price, mat_loc], outputs=[report_output])
+
+    with gr.Tab("📦 MODULE 3: VOLUME POOLING POOL"):
+        with gr.Row():
+            with gr.Column():
+                user_select_3 = gr.Dropdown(choices=[("NODE_A", client_hash_a), ("NODE_B", client_hash_b)], label="Ordering Node Hash", value=client_hash_a)
+                hub_select = gr.Dropdown(choices=[("Pool Target Node 01", "pool_id_01")], label="Active Pools", value="pool_id_01")
+                unit_req = gr.Number(label="Requested Units", value=8.0)
+                btn_join_hub = gr.Button("🤝 Lock Allocation", variant="primary")
+                hub_output = gr.JSON(label="Transaction Receipt Token")
+            with gr.Column():
+                chart_data = core_system.generate_chart_dataframe()
+                if chart_data is not None:
+                    price_chart = gr.LinePlot(value=chart_data, x="DIMENSION_X", y="METRIC_VALUE", color="METRIC_TYPE", title="Optimization Analysis", width=450, height=350)
+                else:
+                    gr.Markdown("⚠️ Install pandas library to render metric line plot visualizer.")
+        btn_join_hub.click(fn=core_system.register_pool_transaction, inputs=[user_select_3, hub_select, unit_req], outputs=[hub_output])
+
+if __name__ == "__main__":
+    demo.launch(inbrowser=True, prevent_thread_lock=False, show_error=True, quiet=False)
